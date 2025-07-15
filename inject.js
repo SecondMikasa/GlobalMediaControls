@@ -1,5 +1,5 @@
 // Injected script that runs in page context to access media elements
-// Firefox-compatible version - FIXED
+// Firefox-compatible version - FIXED with better error handling
 
 (() => {
   // Prevent multiple initializations
@@ -149,7 +149,9 @@
       artist: getMediaArtist(),
       artwork: getMediaArtwork(element),
       src: element.src || element.currentSrc || "",
-      elementId: elementId
+      elementId: elementId,
+      readyState: element.readyState,
+      networkState: element.networkState
     };
 
     // Determine action to send
@@ -218,6 +220,123 @@
     return null;
   }
 
+  // Check if media element is in a playable state
+  function isMediaPlayable(element) {
+    // Check if element exists and is connected to DOM
+    if (!element || !element.isConnected) {
+      console.log("Element not connected to DOM");
+      return false;
+    }
+
+    // Check if media has a valid source
+    if (!element.src && !element.currentSrc) {
+      console.log("No media source available");
+      return false;
+    }
+
+    // Check ready state - need at least HAVE_CURRENT_DATA (2)
+    if (element.readyState < 2) {
+      console.log("Media not ready, readyState:", element.readyState);
+      return false;
+    }
+
+    // Check network state - avoid NETWORK_NO_SOURCE (3)
+    if (element.networkState === 3) {
+      console.log("No network source available");
+      return false;
+    }
+
+    // Check if media has ended
+    if (element.ended) {
+      console.log("Media has ended");
+      return false;
+    }
+
+    return true;
+  }
+
+  // Enhanced play function with better error handling
+  async function safePlay(element) {
+    console.log("Attempting safe play on:", element.tagName, "readyState:", element.readyState, "networkState:", element.networkState);
+    
+    if (!isMediaPlayable(element)) {
+      console.log("Media is not in playable state");
+      return false;
+    }
+
+    try {
+      // If media has ended, reset to beginning
+      if (element.ended) {
+        element.currentTime = 0;
+      }
+
+      // Wait a bit if media is still loading
+      if (element.readyState < 3) { // Less than HAVE_FUTURE_DATA
+        console.log("Waiting for media to load more data...");
+        await new Promise((resolve) => {
+          const onCanPlay = () => {
+            element.removeEventListener('canplay', onCanPlay);
+            element.removeEventListener('error', onError);
+            resolve();
+          };
+          const onError = () => {
+            element.removeEventListener('canplay', onCanPlay);
+            element.removeEventListener('error', onError);
+            resolve(); // Continue anyway
+          };
+          
+          element.addEventListener('canplay', onCanPlay, { once: true });
+          element.addEventListener('error', onError, { once: true });
+          
+          // Timeout after 2 seconds
+          setTimeout(() => {
+            element.removeEventListener('canplay', onCanPlay);
+            element.removeEventListener('error', onError);
+            resolve();
+          }, 2000);
+        });
+      }
+
+      const playPromise = element.play();
+      
+      if (playPromise && typeof playPromise.then === 'function') {
+        await playPromise;
+        console.log("Play successful");
+        return true;
+      } else {
+        console.log("Play executed (no promise)");
+        return true;
+      }
+    } catch (error) {
+      console.error("Play failed:", error.name, error.message);
+      
+      // Handle specific error types
+      if (error.name === 'AbortError') {
+        console.log("Play was aborted, trying to reload media...");
+        try {
+          element.load();
+          // Wait a bit for reload
+          await new Promise(resolve => setTimeout(resolve, 500));
+          // Try play again
+          const retryPromise = element.play();
+          if (retryPromise && typeof retryPromise.then === 'function') {
+            await retryPromise;
+            console.log("Play successful after reload");
+            return true;
+          }
+        } catch (retryError) {
+          console.error("Retry play failed:", retryError);
+        }
+      } else if (error.name === 'NotAllowedError') {
+        console.log("Play not allowed - user interaction required");
+      } else if (error.name === 'NotSupportedError') {
+        console.log("Media format not supported");
+      }
+      
+      return false;
+    }
+  }
+
   // Listen for control commands
   window.addEventListener("message", (event) => {
     if (event.source !== window || event.data.type !== "MEDIA_CONTROL_INTERNAL") {
@@ -232,7 +351,7 @@
     }
   });
 
-  function executeMediaControl({ action, value }) {
+  async function executeMediaControl({ action, value }) {
     console.log("Executing media control:", action, value);
 
     // Find the target element - prioritize currently playing media
@@ -255,20 +374,13 @@
     }
 
     const elementId = targetElement.dataset.mediaControlsId;
-    console.log("Controlling element:", targetElement.tagName, "ID:", elementId, "Current paused:", targetElement.paused);
+    console.log("Controlling element:", targetElement.tagName, "ID:", elementId, "Current paused:", targetElement.paused, "ReadyState:", targetElement.readyState);
 
     try {
       switch (action) {
         case "play":
           console.log("Executing play command");
-          const playPromise = targetElement.play();
-          if (playPromise) {
-            playPromise.then(() => {
-              console.log("Play successful");
-            }).catch(e => {
-              console.error("Play failed:", e);
-            });
-          }
+          await safePlay(targetElement);
           break;
           
         case "pause":
@@ -281,14 +393,7 @@
           console.log("Executing toggle command, current paused:", targetElement.paused);
           if (targetElement.paused) {
             console.log("Playing media...");
-            const togglePlayPromise = targetElement.play();
-            if (togglePlayPromise) {
-              togglePlayPromise.then(() => {
-                console.log("Toggle play successful");
-              }).catch(e => {
-                console.error("Toggle play failed:", e);
-              });
-            }
+            await safePlay(targetElement);
           } else {
             console.log("Pausing media...");
             targetElement.pause();
