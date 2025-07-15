@@ -243,6 +243,11 @@
       targetElement = Array.from(mediaElements.values()).find(el => !el.paused && !el.ended);
     }
     
+    if (!targetElement) {
+      // Find any media that's ready to play
+      targetElement = Array.from(mediaElements.values()).find(el => el.readyState >= 2);
+    }
+    
     if (!targetElement && mediaElements.size > 0) {
       // Use the most recently added media element
       const elements = Array.from(mediaElements.values());
@@ -255,19 +260,45 @@
     }
 
     const elementId = targetElement.dataset.mediaControlsId;
-    console.log("Controlling element:", targetElement.tagName, "ID:", elementId, "Current paused:", targetElement.paused);
+    console.log("Controlling element:", targetElement.tagName, "ID:", elementId, "Current paused:", targetElement.paused, "readyState:", targetElement.readyState);
+    
+    // Check if element is ready for playback operations
+    if ((action === "play" || action === "toggle") && targetElement.readyState < 2) {
+      console.warn("Media element not ready for playback, readyState:", targetElement.readyState);
+      // Try to load the media first
+      if (targetElement.readyState === 0) {
+        console.log("Attempting to load media...");
+        targetElement.load();
+      }
+      return;
+    }
 
     try {
       switch (action) {
         case "play":
           console.log("Executing play command");
+          if (targetElement.readyState < 2) {
+            console.warn("Cannot play: media not ready");
+            return;
+          }
           const playPromise = targetElement.play();
           if (playPromise) {
             playPromise.then(() => {
               console.log("Play successful");
+              // Force update after successful play
+              setTimeout(() => handleMediaEvent(targetElement, 'play'), 50);
             }).catch(e => {
               console.error("Play failed:", e);
+              // Try to handle common play failures
+              if (e.name === "NotAllowedError") {
+                console.log("Play blocked by browser policy - user interaction required");
+              } else if (e.name === "AbortError") {
+                console.log("Play aborted - media may be loading");
+              }
             });
+          } else {
+            // Fallback for older browsers
+            setTimeout(() => handleMediaEvent(targetElement, 'play'), 50);
           }
           break;
           
@@ -275,24 +306,38 @@
           console.log("Executing pause command");
           targetElement.pause();
           console.log("Pause executed, new paused state:", targetElement.paused);
+          setTimeout(() => handleMediaEvent(targetElement, 'pause'), 50);
           break;
           
         case "toggle":
           console.log("Executing toggle command, current paused:", targetElement.paused);
           if (targetElement.paused) {
+            if (targetElement.readyState < 2) {
+              console.warn("Cannot play: media not ready");
+              return;
+            }
             console.log("Playing media...");
             const togglePlayPromise = targetElement.play();
             if (togglePlayPromise) {
               togglePlayPromise.then(() => {
                 console.log("Toggle play successful");
+                setTimeout(() => handleMediaEvent(targetElement, 'play'), 50);
               }).catch(e => {
                 console.error("Toggle play failed:", e);
+                if (e.name === "NotAllowedError") {
+                  console.log("Toggle play blocked by browser policy");
+                } else if (e.name === "AbortError") {
+                  console.log("Toggle play aborted - media may be loading");
+                }
               });
+            } else {
+              setTimeout(() => handleMediaEvent(targetElement, 'play'), 50);
             }
           } else {
             console.log("Pausing media...");
             targetElement.pause();
             console.log("Toggle pause executed, new paused state:", targetElement.paused);
+            setTimeout(() => handleMediaEvent(targetElement, 'pause'), 50);
           }
           break;
           
@@ -329,12 +374,9 @@
           
         default:
           console.warn("Unknown control action:", action);
+          return;
       }
 
-      // Force an update after control action
-      setTimeout(() => {
-        handleMediaEvent(targetElement, targetElement.paused ? 'pause' : 'play');
-      }, 100);
 
     } catch (error) {
       console.error("Error executing media control:", error);

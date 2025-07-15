@@ -238,7 +238,8 @@ class MediaDetector {
     
     // Avoid duplicate reports by checking if state has changed
     if (messageData) {
-      const stateKey = `${messageData.src}-${messageData.paused}-${messageData.currentTime.toFixed(1)}-${messageData.volume}-${messageData.muted}`;
+      const currentTime = messageData.currentTime || 0;
+      const stateKey = `${messageData.src}-${messageData.paused}-${currentTime.toFixed(1)}-${messageData.volume}-${messageData.muted}`;
       if (this.lastReportedState.get(messageData.src) === stateKey && action === "MEDIA_UPDATED") {
         return; // Skip if state hasn't changed significantly
       }
@@ -268,29 +269,49 @@ class MediaDetector {
       data: { action, value },
     }, "*");
 
-    // Also try direct control as fallback with a delay
+    // Only use fallback if injected script fails (longer delay)
     setTimeout(() => {
+      console.log("Checking if fallback is needed...");
       const mediaElements = document.querySelectorAll("video, audio");
       
-      // Find the best target element
-      let activeMedia = Array.from(mediaElements).find(el => !el.paused);
+      if (mediaElements.length === 0) {
+        console.log("No media elements found for fallback");
+        return;
+      }
+      
+      // Find the best target element - prioritize playing media
+      let activeMedia = Array.from(mediaElements).find(el => !el.paused && !el.ended);
+      
+      // If no playing media, find one that's ready to play
+      if (!activeMedia) {
+        activeMedia = Array.from(mediaElements).find(el => el.readyState >= 2); // HAVE_CURRENT_DATA
+      }
+      
+      // Last resort: use any media element
       if (!activeMedia && mediaElements.length > 0) {
-        activeMedia = mediaElements[mediaElements.length - 1]; // Use last found element
+        activeMedia = mediaElements[0];
       }
       
       if (activeMedia) {
-        console.log("Fallback direct control on:", activeMedia.tagName);
+        console.log("Using fallback direct control on:", activeMedia.tagName, "readyState:", activeMedia.readyState);
         this.executeDirectControl(activeMedia, action, value);
+      } else {
+        console.log("No suitable media element found for fallback");
       }
-    }, 200);
+    }, 1000); // Longer delay to let injected script work first
   }
 
   executeDirectControl(element, action, value) {
     try {
       console.log("Direct control execution:", action, value, "on", element.tagName);
+      console.log("Element state - paused:", element.paused, "readyState:", element.readyState, "currentTime:", element.currentTime);
       
       switch (action) {
         case "play":
+          if (element.readyState < 2) {
+            console.log("Element not ready for playback, readyState:", element.readyState);
+            return;
+          }
           const playPromise = element.play();
           if (playPromise) {
             playPromise.then(() => {
@@ -305,7 +326,13 @@ class MediaDetector {
           console.log("Direct pause executed");
           break;
         case "toggle":
+          console.log("Direct toggle - current paused state:", element.paused);
           if (element.paused) {
+            if (element.readyState < 2) {
+              console.log("Element not ready for playback, readyState:", element.readyState);
+              return;
+            }
+            console.log("Direct toggle: attempting to play");
             const togglePlayPromise = element.play();
             if (togglePlayPromise) {
               togglePlayPromise.then(() => {
@@ -315,6 +342,7 @@ class MediaDetector {
               });
             }
           } else {
+            console.log("Direct toggle: attempting to pause");
             element.pause();
             console.log("Direct toggle pause executed");
           }
