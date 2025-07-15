@@ -4,12 +4,12 @@
 (() => {
   // Prevent multiple initializations
   if (window.mediaControlsInjected) {
-    // console.log("Media controls already injected");
+    console.log("Media controls already injected, skipping");
     return;
   }
   window.mediaControlsInjected = true;
 
-  // console.log("Media controls inject script starting...");
+  console.log("Media controls inject script starting...");
 
   let currentMedia = null;
   const mediaElements = new Map(); // Use Map to track elements by ID
@@ -31,11 +31,10 @@
     // Handle promise-based play() for modern browsers
     if (result && typeof result.then === 'function') {
       result.then(() => {
-        // console.log("Play promise resolved");
-        // Small delay to ensure state is updated
+        console.log("Play promise resolved");
         setTimeout(() => handleMediaEvent(this, 'play'), 50);
       }).catch(error => {
-        // console.log("Play promise rejected:", error);
+        console.log("Play promise rejected:", error);
       });
     } else {
       // Fallback for older browsers
@@ -56,7 +55,7 @@
   };
 
   HTMLMediaElement.prototype.load = function() {
-    // console.log("Load intercepted:", this.tagName, this.src || this.currentSrc);
+    console.log("Load intercepted:", this.tagName, this.src || this.currentSrc);
     if (!this.dataset.mediaControlsInjected) {
       setupMediaElement(this);
     }
@@ -67,12 +66,12 @@
 
   function setupMediaElement(element) {
     if (element.dataset.mediaControlsInjected) {
-      // console.log("Element already set up");
+      console.log("Element already set up");
       return;
     }
 
     const elementId = ++mediaElementCounter;
-    // console.log(`Setting up media element #${elementId}:`, element.tagName, element.src || element.currentSrc);
+    console.log(`Setting up media element #${elementId}:`, element.tagName, element.src || element.currentSrc);
     
     element.dataset.mediaControlsInjected = "true";
     element.dataset.mediaControlsId = elementId;
@@ -105,7 +104,7 @@
 
     // Check if media is already in a playable state
     if (element.readyState >= 2) { // HAVE_CURRENT_DATA
-      // console.log(`Element #${elementId} is already ready`);
+      console.log(`Element #${elementId} is already ready`);
       handleMediaEvent(element, 'canplay');
       
       // Check if it's already playing
@@ -131,10 +130,10 @@
     const wasPlaying = currentMedia === element;
 
     if (isPlaying && !wasPlaying) {
-      // console.log(`Element #${elementId} became current media`);
+      console.log(`Element #${elementId} became current media`);
       currentMedia = element;
     } else if (!isPlaying && wasPlaying) {
-      // console.log(`Element #${elementId} is no longer current media`);
+      console.log(`Element #${elementId} is no longer current media`);
       currentMedia = null;
     }
 
@@ -181,7 +180,7 @@
         }, "*");
       }
     } catch (error) {
-      // console.error("Error posting message:", error);
+      console.error("Error posting message:", error);
     }
   }
 
@@ -226,7 +225,7 @@
     }
 
     const { action, data } = event.data;
-    // console.log("Received control command:", action, data);
+    console.log("Received control command:", action, data);
 
     if (action === "EXECUTE_CONTROL") {
       executeMediaControl(data);
@@ -234,7 +233,7 @@
   });
 
   function executeMediaControl({ action, value }) {
-    // console.log("Executing media control:", action, value);
+    console.log("Executing media control:", action, value);
 
     // Find the target element - prioritize currently playing media
     let targetElement = currentMedia;
@@ -256,26 +255,44 @@
     }
 
     const elementId = targetElement.dataset.mediaControlsId;
-    console.log("Controlling element:", targetElement.tagName, elementId);
+    console.log("Controlling element:", targetElement.tagName, "ID:", elementId, "Current paused:", targetElement.paused);
 
     try {
       switch (action) {
         case "play":
           console.log("Executing play command");
-          targetElement.play().catch(e => console.error("Play failed:", e));
+          const playPromise = targetElement.play();
+          if (playPromise) {
+            playPromise.then(() => {
+              console.log("Play successful");
+            }).catch(e => {
+              console.error("Play failed:", e);
+            });
+          }
           break;
           
         case "pause":
           console.log("Executing pause command");
           targetElement.pause();
+          console.log("Pause executed, new paused state:", targetElement.paused);
           break;
           
         case "toggle":
           console.log("Executing toggle command, current paused:", targetElement.paused);
           if (targetElement.paused) {
-            targetElement.play().catch(e => console.error("Play failed:", e));
+            console.log("Playing media...");
+            const togglePlayPromise = targetElement.play();
+            if (togglePlayPromise) {
+              togglePlayPromise.then(() => {
+                console.log("Toggle play successful");
+              }).catch(e => {
+                console.error("Toggle play failed:", e);
+              });
+            }
           } else {
+            console.log("Pausing media...");
             targetElement.pause();
+            console.log("Toggle pause executed, new paused state:", targetElement.paused);
           }
           break;
           
@@ -313,6 +330,12 @@
         default:
           console.warn("Unknown control action:", action);
       }
+
+      // Force an update after control action
+      setTimeout(() => {
+        handleMediaEvent(targetElement, targetElement.paused ? 'pause' : 'play');
+      }, 100);
+
     } catch (error) {
       console.error("Error executing media control:", error);
     }

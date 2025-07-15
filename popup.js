@@ -357,6 +357,7 @@ class MediaControlsPopup {
   async controlMedia(tabId, frameId, action, value) {
     try {
       console.log("Controlling media:", { tabId, frameId, action, value });
+      this.updateDebug(`Sending ${action} command...`);
       
       const message = {
         type: "MEDIA_CONTROL",
@@ -365,6 +366,8 @@ class MediaControlsPopup {
       };
       
       await this.sendMessage(message);
+      console.log("Control message sent successfully");
+      this.updateDebug(`${action} command sent`);
       
       // Update UI immediately for better responsiveness
       this.updateMediaState(tabId, frameId, action, value);

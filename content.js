@@ -221,6 +221,8 @@ class MediaDetector {
     const { type, action, data } = message;
     if (type !== "MEDIA_CONTROL") return;
 
+    console.log("Content script received message:", action, data);
+
     switch (action) {
       case "EXECUTE_CONTROL":
         this.executeControl(data);
@@ -259,28 +261,28 @@ class MediaDetector {
   executeControl({ action, value }) {
     console.log("Content script executing control:", action, value);
     
-    // Send to injected script
+    // Send to injected script first
     window.postMessage({
       type: "MEDIA_CONTROL_INTERNAL",
       action: "EXECUTE_CONTROL",
       data: { action, value },
     }, "*");
 
-    // Also try direct control as fallback
-    const mediaElements = document.querySelectorAll("video, audio");
-    
-    // Find the best target element
-    let activeMedia = Array.from(mediaElements).find(el => !el.paused);
-    if (!activeMedia && mediaElements.length > 0) {
-      activeMedia = mediaElements[mediaElements.length - 1]; // Use last found element
-    }
-    
-    if (activeMedia) {
-      // Small delay to allow injected script to handle first
-      setTimeout(() => {
+    // Also try direct control as fallback with a delay
+    setTimeout(() => {
+      const mediaElements = document.querySelectorAll("video, audio");
+      
+      // Find the best target element
+      let activeMedia = Array.from(mediaElements).find(el => !el.paused);
+      if (!activeMedia && mediaElements.length > 0) {
+        activeMedia = mediaElements[mediaElements.length - 1]; // Use last found element
+      }
+      
+      if (activeMedia) {
+        console.log("Fallback direct control on:", activeMedia.tagName);
         this.executeDirectControl(activeMedia, action, value);
-      }, 100);
-    }
+      }
+    }, 200);
   }
 
   executeDirectControl(element, action, value) {
@@ -289,16 +291,32 @@ class MediaDetector {
       
       switch (action) {
         case "play":
-          element.play().catch(e => console.error("Direct play failed:", e));
+          const playPromise = element.play();
+          if (playPromise) {
+            playPromise.then(() => {
+              console.log("Direct play successful");
+            }).catch(e => {
+              console.error("Direct play failed:", e);
+            });
+          }
           break;
         case "pause":
           element.pause();
+          console.log("Direct pause executed");
           break;
         case "toggle":
           if (element.paused) {
-            element.play().catch(e => console.error("Direct play failed:", e));
+            const togglePlayPromise = element.play();
+            if (togglePlayPromise) {
+              togglePlayPromise.then(() => {
+                console.log("Direct toggle play successful");
+              }).catch(e => {
+                console.error("Direct toggle play failed:", e);
+              });
+            }
           } else {
             element.pause();
+            console.log("Direct toggle pause executed");
           }
           break;
         case "volume":

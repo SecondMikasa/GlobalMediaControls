@@ -157,6 +157,8 @@ class MediaControlsManager {
 
   async controlMedia({ tabId, frameId, action, value }) {
     try {
+      console.log("Background controlling media:", { tabId, frameId, action, value });
+      
       await browser.tabs.sendMessage(
         tabId,
         {
@@ -166,6 +168,8 @@ class MediaControlsManager {
         },
         { frameId }
       );
+      
+      console.log("Control message sent successfully");
     } catch (error) {
       console.error("Failed to control media:", error);
       // Remove session if tab is gone
