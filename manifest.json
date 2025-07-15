@@ -1,0 +1,66 @@
+{
+  "manifest_version": 2,
+  "name": "Global Media Controls",
+  "version": "1.0.0",
+  "description": "Control media playback across all tabs with a unified interface",
+
+  "permissions": [
+    "tabs", 
+    "activeTab", 
+    "storage", 
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "Global Media Controls",
+    "default_icon": {
+      "48": "icons/icon-48.svg"
+    }
+  },
+
+  "sidebar_action": {
+    "default_panel": "sidebar.html",
+    "default_title": "Media Controls",
+    "default_icon": {
+      "48": "icons/icon-48.svg"
+    }
+  },
+
+  "commands": {
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+M",
+        "mac": "Command+Shift+M"
+      },
+      "description": "Toggle Media Controls Sidebar"
+    },
+    "play-pause-media": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Space",
+        "mac": "Command+Shift+Space"
+      },
+      "description": "Play/Pause current media"
+    }
+  },
+
+  "icons": {
+    "48": "icons/icon-48.svg"
+  },
+
+  "web_accessible_resources": ["inject.js"]
+}

@@ -1,0 +1,199 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f9f9f9;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#sidebar-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#header {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+#header h1 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+#global-controls {
+  display: flex;
+  gap: 8px;
+}
+
+#global-controls button {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  flex: 1;
+}
+
+#global-controls button:hover {
+  background: #e0e0e0;
+}
+
+#global-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#media-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.media-item {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+}
+
+.media-item:hover {
+  background: #f5f5f5;
+}
+
+.media-item.active {
+  border-left: 4px solid #4285f4;
+}
+
+.media-thumbnail {
+  width: 100%;
+  height: 120px;
+  border-radius: 6px;
+  background: #e0e0e0;
+  margin-bottom: 12px;
+  background-size: cover;
+  background-position: center;
+}
+
+.media-info {
+  width: 100%;
+}
+
+.media-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 4px 0;
+  word-wrap: break-word;
+}
+
+.media-artist {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 12px 0;
+  word-wrap: break-word;
+}
+
+.media-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.media-controls button {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+  flex: 1;
+  min-width: 60px;
+}
+
+.media-controls button:hover {
+  background: #e0e0e0;
+}
+
+.media-controls button.active {
+  background: #4285f4;
+  color: white;
+}
+
+.volume-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.volume-slider {
+  width: 100%;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4285f4;
+  transition: width 0.1s;
+}
+
+.time-info {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+}
+
+#no-media {
+  padding: 40px 16px;
+  text-align: center;
+  color: #666;
+}
+
+.hidden {
+  display: none;
+}
+
+.close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.media-item:hover .close-button {
+  opacity: 1;
+}
+
+.close-button:hover {
+  background: rgba(0, 0, 0, 0.2);
+}

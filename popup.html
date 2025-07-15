@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 400px;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .toolbar {
+      display: flex;
+      padding: 12px;
+      background: #2a2a2a;
+      border-bottom: 1px solid #333;
+      gap: 8px;
+    }
+
+    .toolbar button {
+      flex: 1;
+      padding: 8px;
+      background: #3a3a3a;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .toolbar button:hover {
+      background: #4a4a4a;
+    }
+
+    .toolbar button.active {
+      background: #007acc;
+    }
+
+    .toolbar button svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    #mediaList {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .media-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #333;
+      position: relative;
+    }
+
+    .media-item.active {
+      background: #252525;
+    }
+
+    .media-artwork {
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
+      background: #333;
+      margin-right: 12px;
+      overflow: hidden;
+    }
+
+    .media-artwork img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .media-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .media-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .media-artist {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .media-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .control-btn {
+      padding: 6px;
+      background: #3a3a3a;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+    }
+
+    .control-btn:hover {
+      background: #4a4a4a;
+    }
+
+    .control-btn.primary {
+      background: #007acc;
+    }
+
+    .control-btn.primary:hover {
+      background: #0066aa;
+    }
+
+    .control-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .volume-slider {
+      width: 60px;
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .volume-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: #007acc;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .time-info {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      background: #007acc;
+      transition: width 0.1s ease;
+    }
+
+    .no-media {
+      text-align: center;
+      padding: 40px 20px;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .debug-info {
+      padding: 8px;
+      background: #2a2a2a;
+      border-top: 1px solid #333;
+      font-size: 11px;
+      color: #aaa;
+      display: none;
+    }
+
+    .show-debug .debug-info {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="pauseAll" title="Pause All">
+      <svg viewBox="0 0 24 24">
+        <path d="M14,19H18V5H14M6,19H10V5H6V19Z"/>
+      </svg>
+    </button>
+    <button id="muteAll" title="Mute All">
+      <svg viewBox="0 0 24 24">
+        <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
+      </svg>
+    </button>
+    <button id="lucidMode" title="Lucid Mode">
+      <svg viewBox="0 0 24 24">
+        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"/>
+      </svg>
+    </button>
+  </div>
+  
+  <div id="mediaList">
+    <div class="no-media">Loading...</div>
+  </div>
+
+  <div class="debug-info" id="debugInfo">
+    Debug: <span id="debugText">Initializing...</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

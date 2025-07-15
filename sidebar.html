@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body { width: 100%; max-height: none; }
+    .header { position: sticky; top: 0; z-index: 10; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="header">
+      <h1>Media Controls</h1>
+      <div class="toolbar">
+        <button id="pauseAll" class="toolbar-btn" title="Pause All">
+          <svg viewBox="0 0 24 24"><path d="M14,19H18V5H14M6,19H10V5H6V19Z"/></svg>
+        </button>
+        <button id="muteAll" class="toolbar-btn" title="Mute All">
+          <svg viewBox="0 0 24 24"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.84 14,18.7V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>
+        </button>
+        <button id="lucidMode" class="toolbar-btn" title="Lucid Mode">
+          <svg viewBox="0 0 24 24"><path d="M9,4L6.5,9.5L1,12L6.5,14.5L9,20L11.5,14.5L17,12L11.5,9.5M9,8.83L8,11L5.83,12L8,13L9,15.17L10,13L12.17,12L10,11L9,8.83Z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="mediaList" class="media-list">
+      <div class="no-media">No active media found</div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
